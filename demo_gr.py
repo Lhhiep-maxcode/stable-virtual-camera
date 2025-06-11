@@ -725,7 +725,7 @@ def setup_tunnel(
     else:
         remote_host, remote_port = share_server_address.split(":")
         remote_port = int(remote_port)
-    tunnel = Tunnel(remote_host, remote_port, local_host, local_port, share_token)
+    tunnel = Tunnel(remote_host, remote_port, local_host, local_port, share_token, None)
     address = tunnel.start_tunnel()
     return address, tunnel
 
