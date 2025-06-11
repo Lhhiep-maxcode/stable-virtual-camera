@@ -67,8 +67,15 @@ class Attention(nn.Module):
             lambda t: rearrange(t, "b l (h d) -> b h l d", h=self.heads),
             (q, k, v),
         )
-        with sdpa_kernel(SDPBackend.FLASH_ATTENTION):
-            out = F.scaled_dot_product_attention(q, k, v)
+        try:
+            # Try FLASH_ATTENTION, fallback if it fails
+            with sdpa_kernel(SDPBackend.FLASH_ATTENTION):
+                out = F.scaled_dot_product_attention(q, k, v)
+        except RuntimeError:
+            # Fallback to standard attention if kernel not available
+            attn_scores = torch.matmul(q, k.transpose(-2, -1)) / (q.size(-1) ** 0.5)
+            attn_weights = torch.softmax(attn_scores, dim=-1)
+            out = torch.matmul(attn_weights, v)
         out = rearrange(out, "b h l d -> b l (h d)")
         out = self.to_out(out)
         return out
